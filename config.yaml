@@ -1,0 +1,21 @@
+segments:
+  - HA
+  - NA
+  - MP
+  - PB2
+  - PB1
+  - PA
+  - NP
+  - NS
+
+executables:
+  MAFFT: [mafft]
+  trimAl: [trimal]
+  IQ-TREE: [iqtree2, iqtree]
+  SeqKit: [seqkit]
+
+python_modules:
+  - pandas
+  - openpyxl
+  - Bio
+  - yaml
