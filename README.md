@@ -112,8 +112,6 @@ You cannot use positional arguments and `--segment` at the same time. If no segm
    run_iqtree.py input/SEGMENT/... --outdir output/SEGMENT
 ```
 
-`matchmetadata.py` must run after MAFFT because it uses the aligned FASTA as input. Each preparation/validation script checks only the currently selected segment.
-
 Final results are written to:
 
 ```text
