@@ -63,14 +63,35 @@ conda env update -f environment.yml
 
 The controller checks Python modules and the executables `mafft`, `trimal`, `seqkit`, and IQ-TREE before running. IQ-TREE supports both `iqtree2` and `iqtree`. Dependencies and supported segments are configured in `config.yaml`.
 
+### Data policy
+
+This repository does not include raw `Data/` or `01_sample_preparation/input/` files. Those directories are locally ignored in Git to avoid uploading large GISAID FASTA and metadata files.
+
 ## Input
 
-Place at least one Excel metadata file (`.xls` or `.xlsx`) and at least one FASTA file (`.fa`, `.fas`, `.fasta`, or `.fna`) directly in:
+This repository contains only pipeline code. Raw GISAID input files are not uploaded to GitHub and must be obtained separately.
+
+Place the downloaded metadata Excel file(s) and FASTA file(s) in:
 
 ```text
-01_sample_preparation/input/
+Data/
 ```
 
+Then copy them into the pipeline input directory before running the workflow:
+
+```bash
+python 01_sample_preparation/scripts/copy_data_to_input.py
+```
+
+If you need to replace old files in `01_sample_preparation/input/`, add `--overwrite`:
+
+```bash
+python 01_sample_preparation/scripts/copy_data_to_input.py --overwrite
+```
+
+The pipeline expects at least one Excel metadata file (`.xls` or `.xlsx`) and at least one FASTA file (`.fa`, `.fas`, `.fasta`, or `.fna`) in `01_sample_preparation/input/`.
+
+>>>>>>> 4e80ef2 (Update data policy and add copy_data_to_input helper)
 FASTA headers must contain a recognizable segment name and isolate ID; metadata must include the columns required by the scripts, especially `Isolate_Id`.
 
 ## Running

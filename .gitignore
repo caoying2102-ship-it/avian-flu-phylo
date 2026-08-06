@@ -9,6 +9,17 @@ venv/
 .ipynb_checkpoints/
 outputs/
 logs/
+Data/*
+!Data/README.md
+01_sample_preparation/input/*
+!01_sample_preparation/input/README.md
+01_sample_preparation/output/
+02_msa/input/
+02_msa/output/
+03_trimal/input/
+03_trimal/output/
+04_iqtree_initial/input/
+04_iqtree_initial/output/
 *.xlsx
 *.csv
 *.fasta
