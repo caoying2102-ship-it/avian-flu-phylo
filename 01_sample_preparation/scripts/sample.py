@@ -420,8 +420,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--segment", required=True, type=str.upper, choices=("HA", "NA", "MP", "PB2", "PB1", "PA", "NP", "NS"))
     segment = parser.parse_args().segment
-    # The historical forced reference applies only to HA.
-    REQUIRED_ISOLATE_IDS = REQUIRED_ISOLATE_IDS if segment == "HA" else set()
+    # This isolate must remain in the sampled set for all gene segments.
+    REQUIRED_ISOLATE_IDS = REQUIRED_ISOLATE_IDS.copy()
     # Assume sample.py is located at:
     # 01_sample_preparation/scripts/sample.py
     project_root = Path(__file__).resolve().parents[2]
