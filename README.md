@@ -1,4 +1,4 @@
-# Influenza IQ-TREE pipeline
+# avian-flu-phylo
 
 This project runs one influenza gene segment through the following stages:
 
