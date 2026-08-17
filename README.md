@@ -1,4 +1,4 @@
-# avian-flu-phylo
+# Avian Influenza Phylogenetic Tree Pipeline
 
 This project runs one influenza gene segment through the following stages:
 
