@@ -1,170 +1,210 @@
 # Avian Influenza Phylogenetic Tree Pipeline
 
-This project runs one influenza gene segment through the following stages:
+This pipeline processes one influenza gene segment end-to-end:
 
-1. `01_sample_preparation`: merge inputs, clean metadata, sample, extract, and deduplicate
-2. `02_msa`: prepare inputs, run MAFFT alignment, and match metadata to the aligned sequences
-3. `03_trimal`: trim alignments with trimAl
-4. `04_iqtree_initial`: infer a phylogenetic tree with IQ-TREE 2
+1. `01_sample_preparation`: assemble raw inputs, clean metadata, and prepare segment-specific files
+2. `02_msa`: align sequences with MAFFT and link metadata to aligned outputs
+3. `03_trimal`: trim the alignment with trimAl
+4. `04_iqtree_initial`: build the phylogenetic tree with IQ-TREE
 
-The pipeline supports `HA`, `NA`, `MP`, `PB2`, `PB1`, `PA`, `NP`, and `NS`. A single run only reads and writes the selected segment's intermediate files and does not require the other seven segments to exist.
+Supported segments: `HA`, `NA`, `MP`, `PB2`, `PB1`, `PA`, `NP`, and `NS`.
 
-## Fresh runs and existing outputs
+## 1. Install Conda and create the environment
 
-If you want each run to start from a clean state, use the new `--clean` option. It archives any existing intermediate/output directories for the selected segment under `logs/archive/<timestamp>/` before running.
+A Miniconda installer is included in the project root:
 
-Example:
+- `Miniconda3-latest-MacOSX-arm64.sh`
+- `install_miniconda.sh`
+
+On macOS, install Miniconda with:
 
 ```bash
-python run_pipeline.py --segment HA --clean
+chmod +x install_miniconda.sh
+./install_miniconda.sh
 ```
 
-This preserves prior result files in `logs/archive/` while letting the current execution start without stale outputs.
-
-## Installation
-
-Conda/Mamba is recommended:
+After installation, reopen the terminal and activate Conda:
 
 ```bash
+source ~/miniconda3/bin/activate
+conda init zsh
+```
+
+Then start a new shell and create the project environment:
+
+```bash
+conda activate base
 conda env create -f environment.yml
 conda activate iqtree-pipeline
 ```
 
-If someone else clones this repository from GitHub, they can use the same commands to set up the environment.
-
-For macOS or Linux, the `environment.yml` installs both the required Python packages and the external bioinformatics tools:
-- `mafft`
-- `trimal`
-- `iqtree`
-- `seqkit`
-
-If the user already has a Conda environment, they can activate it first and then install the project dependencies with:
+If the environment already exists, update it instead:
 
 ```bash
-conda env update -f environment.yml
-```
-
-### Setup after cloning from GitHub
-
-After cloning the repository, use the same environment file to reproduce the required tools and Python packages:
-
-```bash
-git clone https://github.com/<your-username>/<repo>.git
-cd <repo>
-conda env create -f environment.yml
 conda activate iqtree-pipeline
-```
-
-
-```bash
-conda activate phylo_arm
 conda env update -f environment.yml
 ```
 
-The controller checks Python modules and the executables `mafft`, `trimal`, `seqkit`, and IQ-TREE before running. IQ-TREE supports both `iqtree2` and `iqtree`. Dependencies and supported segments are configured in `config.yaml`.
+The environment defined in [environment.yml](environment.yml) includes the required Python packages and external tools:
 
-### Data policy
+- Python 3.11
+- pandas
+- openpyxl
+- Biopython
+- MAFFT
+- trimAl
+- IQ-TREE
+- SeqKit
+- PyYAML
 
-This repository does not include raw `Data/` or `01_sample_preparation/input/` files. Those directories are locally ignored in Git to avoid uploading large GISAID FASTA and metadata files.
+## 2. Prepare raw input files
 
-## Input
+This repository only contains the pipeline code. Raw data are not stored in GitHub and must be supplied locally.
 
-This repository contains only pipeline code. Raw GISAID input files are not uploaded to GitHub and must be obtained separately.
-
-Place the downloaded metadata Excel file(s) and FASTA file(s) in:
+Place your input FASTA files and metadata Excel files directly in:
 
 ```text
 Data/
 ```
 
-Then copy them into the pipeline input directory before running the workflow:
+The project accepts:
+
+- metadata: `.xlsx` or `.xls`
+- FASTA: `.fa`, `.fas`, `.fasta`, `.fna`
+
+The script will automatically copy supported files from `Data/` into `01_sample_preparation/input/` before running the pipeline.
+
+Manual refresh is also available:
 
 ```bash
 python 01_sample_preparation/scripts/copy_data_to_input.py
 ```
 
-If you need to replace old files in `01_sample_preparation/input/`, add `--overwrite`:
+To overwrite existing files in `01_sample_preparation/input/`:
 
 ```bash
 python 01_sample_preparation/scripts/copy_data_to_input.py --overwrite
 ```
 
-The pipeline expects at least one Excel metadata file (`.xls` or `.xlsx`) and at least one FASTA file (`.fa`, `.fas`, `.fasta`, or `.fna`) in `01_sample_preparation/input/`.
+Important input rules:
 
->>>>>>> 4e80ef2 (Update data policy and add copy_data_to_input helper)
-FASTA headers must contain a recognizable segment name and isolate ID; metadata must include the columns required by the scripts, especially `Isolate_Id`.
+- `Data/` must contain at least one metadata file and at least one FASTA file
+- FASTA headers must include a recognizable segment name and isolate ID
+- metadata must include the required columns used by the scripts, especially `Isolate_Id`
 
-## Running
+## 3. Example data for first-time testing
 
-Recommended usage:
+The repository includes an example dataset for a quick test of the file format and workflow.
+
+Example layout:
+
+```text
+Data/
+├── example1.fasta
+├── example2.fasta
+├── example_metadata.xlsx
+├── README.md
+└── other local files
+```
+
+This example is intended only for verifying the pipeline format, not for full research use.
+
+The key points are:
+
+- the FASTA may be split across multiple files
+- there is one paired metadata file
+- each FASTA header should contain the segment name and isolate ID so metadata can be matched to sequence records correctly
+
+## 4. Run the pipeline
+
+From the project root:
 
 ```bash
 python run_pipeline.py --segment HA
 ```
 
-Positional arguments and lowercase input are also supported:
+You may also use the positional form:
 
 ```bash
-python run_pipeline.py NA
+python run_pipeline.py HA
+```
+
+Lowercase segment names are accepted and normalized to uppercase:
+
+```bash
 python run_pipeline.py --segment pb2
 ```
 
-You cannot use positional arguments and `--segment` at the same time. If no segment is specified or the segment is not in the supported list, the program exits before processing data.
+You cannot use both positional and `--segment` at the same time.
 
-## Execution order
+If you want to archive prior outputs before a fresh run:
 
-```text
-01 prepare_samples.py --genes SEGMENT
-   generate_simplified_metadata.py --segment SEGMENT
-   rename_fasta_headers.py --segment SEGMENT
-   summary_count.py --segment SEGMENT
-   sample.py --segment SEGMENT
-   extract.py --segment SEGMENT
-   SeqKit.py --segment SEGMENT
-
-02 prepare_msa_inputs.py --segment SEGMENT
-   msa.py --segment SEGMENT
-   matchmetadata.py --segment SEGMENT
-
-03 prepare_trimal_inputs.py --segment SEGMENT
-   trimal.py --segment SEGMENT
-
-04 prepare_iqtree_inputs.py --segment SEGMENT
-   run_iqtree.py input/SEGMENT/... --outdir output/SEGMENT
+```bash
+python run_pipeline.py --segment HA --clean
 ```
 
-Final results are written to:
+This moves any previous segment outputs under `logs/archive/<timestamp>/` before the new run starts.
+
+## 5. What the pipeline produces
+
+The pipeline writes intermediate and final outputs for each selected segment under:
 
 ```text
 04_iqtree_initial/output/SEGMENT/
 ```
 
-The main output files include `.treefile`, `.iqtree`, and `.log`.
+For each run, the output directory contains the IQ-TREE results, including:
 
-## Configuration
+- `.treefile`
+- `.iqtree`
+- `.log`
+- the matched metadata workbook copied alongside the final tree outputs
 
-`config.yaml` is the single source of segment and software configuration for the controller. It contains:
+The metadata copied into the tree output directory is the paired `*_metadata_reference_dedup_aligned_trimmed.xlsx` file that matches the FASTA used for tree inference.
 
-- `segments`: supported segments
-- `executables`: candidate commands for external tools
-- `python_modules`: Python modules that are checked before execution
+## 6. Execution flow
 
-When changing the segment list, make sure the stage scripts support the same segment names.
+The controller runs the stages in order:
 
-## Troubleshooting
+```text
+01_sample_preparation/
+  prepare_samples.py
+  generate_simplified_metadata.py
+  rename_fasta_headers.py
+  summary_count.py
+  sample.py
+  extract.py
+  SeqKit.py
 
-- Missing runtime dependencies: after activating the environment, check `which mafft`, `which trimal`, `which seqkit`, and `which iqtree2`.
-- Initial inputs not found: confirm that the files are placed directly in `01_sample_preparation/input/`.
-- Previous-stage outputs not found: run the full controller from the project root and inspect the earliest failing stage.
-- Existing IQ-TREE results with the same prefix: move the old outputs or call the IQ-TREE script directly with `--redo` as needed.
+02_msa/
+  prepare_msa_inputs.py
+  msa.py
+  matchmetadata.py
 
-## Static checks
+03_trimal/
+  prepare_trimal_inputs.py
+  trimal.py
 
-You can run the following without using real data:
+04_iqtree_initial/
+  prepare_iqtree_inputs.py
+  run_iqtree.py
+```
+
+## 7. Troubleshooting
+
+- Missing dependency: activate the environment and check `mafft`, `trimal`, `seqkit`, and `iqtree2`
+- Raw files not found: confirm they are placed in `Data/`, not directly in the stage input directories
+- Input copy step skipped: verify the Data files have supported file extensions
+- Previous output conflicts: use `--clean` or remove old results before rerunning
+- Segment not recognized: use one of the supported values from `config.yaml`
+
+## 8. Static checks
+
+You can validate the project without reading real data:
 
 ```bash
 python -m compileall -q run_pipeline.py 01_sample_preparation/scripts 02_msa/scripts 03_trimal/scripts 04_iqtree_initial/scripts
 python run_pipeline.py --help
 ```
 
-These commands only check syntax and the command-line interface; they do not run the pipeline or read input data.
+These checks only verify syntax and command-line usage; they do not run the pipeline on actual data.

@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 import pandas as pd
 
+import run_pipeline
+
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "01_sample_preparation" / "scripts" / "sample.py"
 
@@ -16,6 +18,22 @@ spec.loader.exec_module(module)
 
 
 class SampleRetentionTest(unittest.TestCase):
+    def test_copy_data_to_input_copies_raw_data_for_pipeline(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            data_dir = project_root / "Data"
+            input_dir = project_root / "01_sample_preparation" / "input"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            (data_dir / "example_data.xlsx").write_bytes(b"metadata")
+            (data_dir / "example.fasta").write_text(">test|HA|other|EPI_ISL_0001\nACGT\n", encoding="utf-8")
+
+            with patch.object(run_pipeline, "PROJECT_ROOT", project_root):
+                copied = run_pipeline.copy_data_to_input()
+
+            self.assertTrue(copied)
+            self.assertTrue((input_dir / "example_data.xlsx").exists())
+            self.assertTrue((input_dir / "example.fasta").exists())
+
     def test_main_keeps_required_isolate_for_non_ha_sampling(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmpdir_path = Path(tmpdir)

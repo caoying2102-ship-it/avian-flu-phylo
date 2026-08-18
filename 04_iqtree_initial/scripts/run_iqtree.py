@@ -24,6 +24,31 @@ DEFAULT_OUTDIR = PROJECT_DIR / "output"
 FASTA_SUFFIXES = {".fa", ".fas", ".fasta", ".fna", ".faa", ".aln"}
 
 
+def copy_metadata_to_output(fasta: Path, outdir: Path) -> Path | None:
+    """Copy the paired metadata workbook from the input folder to the output folder."""
+    if not fasta.exists():
+        return None
+
+    segment = fasta.stem.split("_")[0]
+    metadata_candidates = [
+        path
+        for path in sorted(fasta.parent.iterdir())
+        if path.is_file()
+        and path.suffix.lower() in {".xlsx", ".xls"}
+        and "metadata" in path.name.lower()
+        and segment.lower() in path.name.lower()
+    ]
+
+    if not metadata_candidates:
+        return None
+
+    metadata_source = metadata_candidates[0]
+    outdir.mkdir(parents=True, exist_ok=True)
+    destination = outdir / metadata_source.name
+    shutil.copy2(metadata_source, destination)
+    return destination
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Use IQ-TREE 2 to infer a maximum-likelihood phylogenetic tree."
@@ -207,6 +232,10 @@ def main() -> int:
     except subprocess.CalledProcessError as exc:
         print(f"IQ-TREE failed with exit code {exc.returncode}.", file=sys.stderr)
         return exc.returncode
+
+    copied_metadata = copy_metadata_to_output(fasta, outdir)
+    if copied_metadata is not None:
+        print(f"Metadata:    {copied_metadata}")
 
     print(f"\nFinished. Best tree: {prefix}.treefile")
     print(f"Full report: {prefix}.iqtree")

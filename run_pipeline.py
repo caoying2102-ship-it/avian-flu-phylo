@@ -55,6 +55,56 @@ def check_requirements(config):
     print("Dependency check passed: " + ", ".join(sorted(resolved)))
 
 
+def copy_data_to_input(overwrite: bool = False) -> bool:
+    """Copy supported raw data from Data/ into 01_sample_preparation/input/."""
+    data_dir = PROJECT_ROOT / "Data"
+    input_dir = PROJECT_ROOT / "01_sample_preparation" / "input"
+    input_dir.mkdir(parents=True, exist_ok=True)
+
+    if not data_dir.exists():
+        return False
+
+    supported_exts = {".fa", ".fas", ".fasta", ".fna", ".xls", ".xlsx"}
+    files = sorted(
+        path
+        for path in data_dir.rglob("*")
+        if path.is_file() and path.suffix.lower() in supported_exts
+    )
+    if not files:
+        return False
+
+    copied = 0
+    for source in files:
+        destination = input_dir / source.name
+        if destination.exists() and not overwrite:
+            print(f"Skipping existing file: {destination}")
+            continue
+        shutil.copy2(source, destination)
+        print(f"Copied: {source.name} -> {destination}")
+        copied += 1
+
+    if copied == 0:
+        print("No new files were copied; input directory already contains the required files.")
+    else:
+        print(f"Copied {copied} file(s) from Data/ to: {input_dir}")
+    return True
+
+
+def check_data_inputs():
+    data_dir = PROJECT_ROOT / "Data"
+    if not data_dir.is_dir():
+        raise FileNotFoundError(f"Data directory does not exist: {data_dir}")
+    has_metadata = any(data_dir.rglob("*.xlsx")) or any(data_dir.rglob("*.xls"))
+    has_fasta = (
+        any(data_dir.rglob("*.fasta"))
+        or any(data_dir.rglob("*.fa"))
+        or any(data_dir.rglob("*.fas"))
+        or any(data_dir.rglob("*.fna"))
+    )
+    if not has_metadata or not has_fasta:
+        raise FileNotFoundError("Data requires at least one metadata file and one FASTA file")
+
+
 def check_initial_inputs():
     input_dir = PROJECT_ROOT / "01_sample_preparation" / "input"
     if not input_dir.is_dir():
@@ -93,6 +143,8 @@ def archive_previous_outputs(segment: str) -> None:
 
 def run_pipeline(segment, config):
     check_requirements(config)
+    check_data_inputs()
+    copy_data_to_input()
     check_initial_inputs()
 
     scripts_01 = [

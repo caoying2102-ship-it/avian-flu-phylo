@@ -9,6 +9,7 @@ dependencies:
   - python=3.11
   - pandas
   - openpyxl
+  - xlrd
   - biopython
   - mafft
   - trimal

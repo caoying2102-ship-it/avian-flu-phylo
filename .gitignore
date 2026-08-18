@@ -36,3 +36,24 @@ Data/*
 *.pid
 *.parstree
 *.nex
+
+# local installers and runtime outputs
+Miniconda3-latest-MacOSX-arm64.sh
+install_miniconda.sh
+*.log
+outputs/
+logs/
+install_miniconda.sh
+*.fasta
+*.fa
+*.fastq
+*.fq
+*.bam
+*.sam
+*.vcf
+*.nwk
+*.tree
+results/
+output/
+outputs/
+data/
